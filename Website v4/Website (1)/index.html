@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>DEEPSHIELD — Media Integrity</title>
+<style>
+  /* --- Theme tokens --- */
+  :root{
+    --dark-bg: #0f1720; --dark-panel:#0b1320; --dark-text:#E6EEF6; --muted:#9AA8B2;
+    --accent:#2563EB; --accent-2:#0EA5A4; --success:#16A34A; --danger:#EF4444;
+    --light-bg: #F3F6FA; --light-panel: #FFFFFF; --light-text: #0F1720;
+    --light-muted:#374151; --light-accent:#2563EB; --border-light: #D1D5DB;
+  }
+
+  /* default dark theme */
+  html,body{height:100%;margin:0;background:var(--dark-bg);color:var(--dark-text);
+            font-family:Arial, Helvetica, sans-serif}
+  .container{max-width:1000px;margin:22px auto;padding:0}
+
+  /* NAV */
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;margin:0 12px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:68px;height:68px;border-radius:12px;background:linear-gradient(90deg,var(--accent),var(--accent-2));
+        display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:20px}
+  .nav-center{display:flex;gap:12px}
+  .nav-item{padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--muted);font-weight:700}
+  .nav-item.active{background:rgba(255,255,255,0.04);color:var(--dark-text);box-shadow:0 6px 18px rgba(0,0,0,0.35)}
+  .nav-right{display:flex;gap:10px;align-items:center}
+  select, .mode-btn{padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);
+                    background:transparent;color:var(--muted);font-weight:700}
+
+  /* screens */
+  .screen{display:none;padding:18px;border-radius:12px;margin:16px}
+  .screen.active{display:block}
+
+  /* language screen */
+  .lang-screen{display:flex;flex-direction:column;align-items:center;gap:16px;background:var(--dark-panel);
+               padding:36px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+  .lang-title{font-size:26px;color:var(--accent);font-weight:800}
+  .lang-btns{display:flex;gap:10px;width:100%;max-width:720px}
+  .lang-large{flex:1;padding:20px;border-radius:12px;border:none;background:var(--accent);color:#fff;
+              font-weight:800;font-size:18px;cursor:pointer}
+  .lang-alt{background:transparent;border:2px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:700;
+            padding:16px;border-radius:12px;cursor:pointer}
+
+  /* mission card */
+  .card{background:var(--dark-panel);padding:22px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+  .title{font-size:32px;color:var(--accent);margin:0 0 8px 0;font-weight:800}
+  .subtitle{color:var(--muted);margin:6px 0 12px 0}
+  .p{color:var(--muted);line-height:1.7;margin:8px 0}
+
+  /* detector */
+  .detector-grid{display:grid;grid-template-columns:1fr 420px;gap:18px;margin-top:12px}
+  @media(max-width:980px){.detector-grid{grid-template-columns:1fr}}
+
+  .preview{background:#000;border-radius:12px;height:360px;border:1px solid rgba(255,255,255,0.03);
+           display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .preview video{width:100%;height:100%;object-fit:contain}
+
+  /* buttons: BIG and prominent */
+  .big{width:100%;padding:20px;border-radius:12px;font-size:20px;font-weight:900;cursor:pointer;border:none}
+  /* Load button with explicit blue border, visible in both themes */
+  .load-btn{padding:18px 28px;border-radius:12px;border:3px solid #007BFF;font-size:20px;font-weight:700;
+            background-color:transparent;color:inherit;cursor:pointer;transition:0.2s}
+  .load-btn:hover{background-color:rgba(0,123,255,0.12)}
+  .primary{background:var(--accent);color:#fff;box-shadow:0 12px 40px rgba(37,99,235,0.08)}
+  .secondary{background:transparent;border:2px solid rgba(255,255,255,0.05);color:var(--muted);font-weight:800}
+
+  .status{margin-top:14px;padding:14px;border-radius:10px;border:1px dashed rgba(255,255,255,0.04);color:var(--muted);font-weight:700}
+  .result{margin-top:14px;padding:18px;border-radius:12px;font-size:22px;font-weight:900;text-transform:uppercase;text-align:center;border:2px solid rgba(255,255,255,0.03)}
+  .result.real{color:var(--success);border-color:rgba(16,185,129,0.12);box-shadow:0 12px 40px rgba(16,185,129,0.05)}
+  .result.fake{color:var(--danger);border-color:rgba(239,68,68,0.12);box-shadow:0 12px 40px rgba(239,68,68,0.05)}
+  .result.pending{color:var(--accent);border-color:rgba(37,99,235,0.08)}
+
+  /* loader overlay */
+  .loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,0.55);
+          z-index:120;visibility:hidden;opacity:0;transition:opacity .15s}
+  .loader.show{visibility:visible;opacity:1}
+  .loader-box{background:var(--dark-panel);padding:18px;border-radius:12px;display:flex;gap:12px;align-items:center;border:1px solid rgba(255,255,255,0.03)}
+  .spinner{width:56px;height:56px;border-radius:50%;border:6px solid rgba(255,255,255,0.08);border-top-color:var(--accent);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Feedback section */
+  .feedback-card{text-align:center}
+  .feedback-card .title{margin-bottom:16px}
+  .feedback-card .p{max-width:600px;margin:0 auto 24px auto}
+  .feedback-btn{display:inline-block;padding:18px 48px;border-radius:12px;background:linear-gradient(90deg,var(--accent),var(--accent-2));
+                color:#fff;font-weight:800;font-size:18px;text-decoration:none;transition:transform 0.2s, box-shadow 0.2s}
+  .feedback-btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(37,99,235,0.25)}
+  .feedback-iframe-wrap{margin-top:24px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.03)}
+  .feedback-iframe-wrap iframe{width:100%;height:600px;border:none;background:var(--dark-panel)}
+
+  /* LIGHT THEME (ensures borders in light mode) */
+  .light body, .light {
+    --dark-bg: var(--light-bg);
+    --dark-panel: var(--light-panel);
+    --dark-text: var(--light-text);
+    --muted: var(--light-muted);
+    --accent: var(--light-accent);
+    --accent-2: var(--light-accent);
+  }
+  .light body { color: var(--light-text); background: var(--light-bg); }
+  .light .card, .light .lang-screen, .light .loader-box { border: 1px solid var(--border-light); box-shadow: 0 6px 20px rgba(16,24,40,0.04) }
+  .light select, .light .mode-btn { border: 1px solid var(--border-light); color: var(--light-muted); background: #fff }
+  /* ensure blue border stays in light mode for load button */
+  .light .load-btn{ border-color:#007BFF !important; background-color: rgba(0,123,255,0.04); }
+  .light .feedback-iframe-wrap{border-color:var(--border-light)}
+  .light .feedback-iframe-wrap iframe{background:#fff}
+
+  .sr-only{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- NAV -->
+  <div class="nav" id="navBar" style="display:none">
+    <div class="brand">
+      <div class="logo">DS</div>
+      <div>
+        <div style="font-weight:800">DeepShield</div>
+        <div style="font-size:12px;color:var(--muted)">Media Integrity</div>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <div id="navMission" class="nav-item active" onclick="show('mission')">Mission</div>
+      <div id="navDetector" class="nav-item" onclick="show('detector')">Detector</div>
+      <div id="navFeedback" class="nav-item" onclick="show('feedback')">Feedback</div>
+    </div>
+
+    <div class="nav-right">
+      <select id="quickLang" aria-label="Language quick select">
+        <option value="en">English</option>
+        <option value="hi">हिन्दी</option>
+        <option value="mr">मराठी</option>
+      </select>
+      <button id="modeBtn" class="mode-btn" aria-pressed="false">Dark / Light</button>
+    </div>
+  </div>
+
+  <!-- LANGUAGE SCREEN (first seen) -->
+  <div id="screen-language" class="lang-screen">
+    <div class="lang-title" id="langTitle">Select Language / भाषा चुनें / भाषा निवडा</div>
+    <div style="max-width:720px;color:var(--muted);text-align:center">Choose your preferred language. Default: English. (You can change later from nav.)</div>
+    <div class="lang-btns" role="tablist">
+      <button class="lang-large" onclick="setLang('en')">English</button>
+      <button class="lang-large" onclick="setLang('hi')">हिन्दी</button>
+      <button class="lang-large" onclick="setLang('mr')">मराठी</button>
+    </div>
+    <div style="width:100%;max-width:720px"><button class="lang-alt" onclick="skipLang()">Continue with English (default)</button></div>
+  </div>
+
+  <!-- MISSION -->
+  <div id="screen-mission" class="screen card" aria-live="polite">
+    <div class="title" id="projectTitle">DEEPSHIELD V1.0</div>
+    <div class="subtitle" id="projectSubtitle">:: Media Integrity Protocol ::</div>
+
+    <div class="p" id="m1">OBJECTIVE: Establish the authenticity index of temporal media streams against GAN signatures.</div>
+    <div class="p" id="m2">THREAT LEVEL: EXTREME. Deepfake technology poses a critical risk to trust and security.</div>
+    <div class="p" id="m3">PROTOCOL: Extract micro-texture features and analyze temporal coherence using a trained detector.</div>
+
+    <div style="margin-top:18px">
+      <button class="big primary" id="initBtn" onclick="show('detector')">Initialize Detector Core</button>
+    </div>
+  </div>
+
+  <!-- DETECTOR -->
+  <div id="screen-detector" class="screen">
+    <div class="detector-card card">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-weight:800;font-size:20px" id="detTitle">DeepShield Core</div>
+        <div style="color:var(--muted)" id="detSub">Processing Node Status: Online — Awaiting input</div>
+
+        <div class="detector-grid">
+          <!-- left: preview + actions -->
+          <div>
+            <div class="preview" id="previewWrap">
+              <video id="preview" controls></video>
+              <div id="previewEmpty" style="color:var(--muted);padding:12px">No video selected</div>
+            </div>
+
+            <input type="file" id="videoInput" accept="video/*" style="display:none">
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+              <button id="loadBtn" class="load-btn">Load Target Media</button>
+              <button id="btnAnalyze" class="big primary">Execute Verification (Analyze)</button>
+            </div>
+
+            <div class="status" id="statusPanel">
+              <div id="selectedFile">TARGET: [NO FILE LOADED]</div>
+              <div id="statusText" style="margin-top:8px;color:var(--muted)">STATUS: SYSTEM IDLE</div>
+            </div>
+
+            <div id="result" class="result pending">RESULT: WAITING</div>
+          </div>
+
+          <!-- right: info / placeholder -->
+          <div>
+            <div class="card" style="padding:14px">
+              <div style="font-weight:800">Model</div>
+              <div style="color:var(--muted);margin-top:6px">R3D-18 (custom head) — Loaded from deepfake_model.pth</div>
+              <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.04)">
+              <div style="font-weight:700">Quick Tips</div>
+              <ul style="color:var(--muted);margin-top:8px">
+                <li>Use short clips (under 30s) for faster inference.</li>
+                <li>Supported: MP4, MOV, AVI.</li>
+                <li>If connection fails, ensure Flask server is running and CORS enabled.</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEEDBACK -->
+  <div id="screen-feedback" class="screen">
+    <div class="card feedback-card">
+      <div class="title" id="feedbackTitle">Share Your Feedback</div>
+      <div class="p" id="feedbackDesc">Your feedback helps us improve DeepShield. Let us know your thoughts, suggestions, or report any issues you've encountered.</div>
+      
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSeFCNkE7DeC1Sz4YPbZCFCpoIy_du4tVbKlZnjh5J6395wLgg/viewform" 
+         target="_blank" 
+         rel="noopener noreferrer" 
+         class="feedback-btn" 
+         id="feedbackBtn">
+        Open Feedback Form
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<!-- loader -->
+<div id="loader" class="loader" aria-hidden="true">
+  <div class="loader-box">
+    <div class="spinner" role="status" aria-hidden="true"></div>
+    <div id="loaderText" style="font-weight:800;color:var(--muted)">Processing — please wait...</div>
+  </div>
+</div>
+
+<script>
+/* ---------- Configuration ---------- */
+const API_PATH = "/detect"; // matches your app.py route
+let currentLang = "en";
+
+/* UI refs */
+const nav = document.getElementById('navBar');
+const quickLang = document.getElementById('quickLang');
+const modeBtn = document.getElementById('modeBtn');
+
+const screenLang = document.getElementById('screen-language');
+const screenMission = document.getElementById('screen-mission');
+const screenDetector = document.getElementById('screen-detector');
+const screenFeedback = document.getElementById('screen-feedback');
+
+const videoInput = document.getElementById('videoInput');
+const preview = document.getElementById('preview');
+const previewEmpty = document.getElementById('previewEmpty');
+
+const btnLoad = document.getElementById('loadBtn');
+const btnAnalyze = document.getElementById('btnAnalyze');
+
+const selectedFile = document.getElementById('selectedFile');
+const statusText = document.getElementById('statusText');
+const resultBox = document.getElementById('result');
+const loader = document.getElementById('loader');
+const loaderText = document.getElementById('loaderText');
+
+const langTitle = document.getElementById('langTitle');
+
+/* translations */
+const T = {
+  en: { navMission:"Mission", navDetector:"Detector", navFeedback:"Feedback", projectTitle:"DEEPSHIELD V1.0",
+        projectSub:":: Media Integrity Protocol ::",
+        m1:"OBJECTIVE: Establish the authenticity index of temporal media streams against GAN signatures.",
+        m2:"THREAT LEVEL: EXTREME. Deepfake technology poses a critical risk to trust and security.",
+        m3:"PROTOCOL: Extract micro-texture features and analyze temporal coherence using a trained detector.",
+        init:"Initialize Detector Core", load:"Load Target Media", analyze:"Execute Verification (Analyze)",
+        target_none:"TARGET: [NO FILE LOADED]", status_idle:"STATUS: SYSTEM IDLE",
+        status_processing:"STATUS: Processing — sending to core...", result_wait:"RESULT: WAITING",
+        result_real:"RESULT: AUTHENTICATED", result_fake:"RESULT: DEEPFAKE DETECTED",
+        result_error:"RESULT: ERROR — CHECK CONNECTION", loader:"Processing — please wait...",
+        feedbackTitle:"Share Your Feedback", feedbackDesc:"Your feedback helps us improve DeepShield. Let us know your thoughts, suggestions, or report any issues you've encountered.",
+        feedbackBtn:"Open Feedback Form" },
+  hi: { navMission:"मिशन", navDetector:"डिटेक्टर", navFeedback:"प्रतिक्रिया", projectTitle:"डीपशील्ड V1.0", projectSub:":: मीडिया सत्यापन प्रोटोकॉल ::",
+        m1:"उद्देश्य: GAN संकेतों के खिलाफ मीडिया स्ट्रीम की प्रामाणिकता निर्धारित करना।",
+        m2:"जोखिम स्तर: अत्यधिक। डीपफेक तकनीक एक गंभीर खतरा है।",
+        m3:"प्रोटोकॉल: माइक्रो‑टेक्सचर निकालना और समय‑संगति का विश्लेषण।",
+        init:"डिटेक्टर कोर प्रारंभ करें", load:"वीडियो लोड करें", analyze:"विश्लेषण प्रारंभ करें",
+        target_none:"लक्ष्य: [कोई फ़ाइल नहीं]", status_idle:"स्थिति: सिस्टम निष्क्रिय",
+        status_processing:"स्थिति: प्रसंस्करण — कोर को भेजा जा रहा है...", result_wait:"परिणाम: प्रतीक्षा",
+        result_real:"परिणाम: प्रमाणित", result_fake:"परिणाम: डीपफेक मिला", result_error:"परिणाम: त्रुटि — कनेक्शन जाँचें",
+        loader:"प्रसंस्करण — कृपया प्रतीक्षा करें...",
+        feedbackTitle:"अपनी प्रतिक्रिया साझा करें", feedbackDesc:"आपकी प्रतिक्रिया हमें डीपशील्ड को बेहतर बनाने में मदद करती है। अपने विचार, सुझाव या समस्याएं हमें बताएं।",
+        feedbackBtn:"प्रतिक्रिया फॉर्म खोलें" },
+  mr: { navMission:"मिशन", navDetector:"डिटेक्टर", navFeedback:"अभिप्राय", projectTitle:"डीपशील्ड V1.0", projectSub:":: मीडिया सत्यता प्रोटोकॉल ::",
+        m1:"उद्दिष्ट: GAN संकेतांच्या विरुद्ध मीडिया स्ट्रीमची प्रामाणिकता ठरवणे.",
+        m2:"धोका स्तर: उच्च. डीपफेक तंत्रज्ञान गंभीर धोका.", m3:"प्रोटोकॉल: मायक्रो‑टेक्सचर काढणे आणि कालक्रमिक सुसंगतीचे विश्लेषण.",
+        init:"डिटेक्टर कोर प्रारंभ करा", load:"व्हिडिओ लोड करा", analyze:" विश्लेषण सुरू करा",
+        target_none:"लक्ष्य: [कोणतीही फाइल नाही]", status_idle:"स्थिती: सिस्टम निष्क्रिय",
+        status_processing:"स्थिती: प्रक्रिया चालू — कोरला पाठवले जात आहे...", result_wait:"परिणाम: प्रतीक्षा",
+        result_real:"परिणाम: प्रमाणीकरण", result_fake:"परिणाम: डीपफेक आढळला", result_error:"परिणाम: त्रुटी — कनेक्शन तपासा",
+        loader:"प्रक्रिया — कृपया थोडी प्रतीक्षा करा...",
+        feedbackTitle:"आपला अभिप्राय शेअर करा", feedbackDesc:"तुमचा अभिप्राय आम्हाला डीपशील्ड सुधारण्यात मदत करतो. तुमचे विचार, सूचना किंवा समस्या आम्हाला कळवा।",
+        feedbackBtn:"अभिप्राय फॉर्म उघडा" }
+};
+
+/* apply translations */
+function applyLang(lang){
+  currentLang = lang;
+  document.getElementById('navMission').textContent = T[lang].navMission;
+  document.getElementById('navDetector').textContent = T[lang].navDetector;
+  document.getElementById('navFeedback').textContent = T[lang].navFeedback;
+  document.getElementById('projectTitle').textContent = T[lang].projectTitle;
+  document.getElementById('projectSubtitle').textContent = T[lang].projectSub;
+  document.getElementById('m1').textContent = T[lang].m1;
+  document.getElementById('m2').textContent = T[lang].m2;
+  document.getElementById('m3').textContent = T[lang].m3;
+  document.getElementById('initBtn').textContent = T[lang].init;
+  btnLoad.textContent = T[lang].load;
+  btnAnalyze.textContent = T[lang].analyze;
+  selectedFile.textContent = T[lang].target_none;
+  statusText.textContent = T[lang].status_idle;
+  resultBox.textContent = T[lang].result_wait;
+  loaderText.textContent = T[lang].loader;
+  document.getElementById('feedbackTitle').textContent = T[lang].feedbackTitle;
+  document.getElementById('feedbackDesc').textContent = T[lang].feedbackDesc;
+  document.getElementById('feedbackBtn').textContent = T[lang].feedbackBtn;
+  quickLang.value = lang;
+  langTitle.textContent = (lang === 'en' ? "Select Language / भाषा चुनें / भाषा निवडा" : (lang==='hi' ? "भाषा चुनें" : "भाषा निवडा"));
+}
+
+/* show/hide screens */
+function show(which){
+  screenLang.style.display = (which === 'language') ? 'flex' : 'none';
+  screenMission.style.display = (which === 'mission') ? 'block' : 'none';
+  screenDetector.style.display = (which === 'detector') ? 'block' : 'none';
+  screenFeedback.style.display = (which === 'feedback') ? 'block' : 'none';
+  nav.style.display = (which === 'language') ? 'none' : 'flex';
+  document.getElementById('navMission').classList.toggle('active', which === 'mission');
+  document.getElementById('navDetector').classList.toggle('active', which === 'detector');
+  document.getElementById('navFeedback').classList.toggle('active', which === 'feedback');
+}
+
+/* initial */
+show('language');
+
+/* language selection handlers */
+function setLang(lang){ applyLang(lang); show('mission'); }
+function skipLang(){ setLang('en'); }
+quickLang.addEventListener('change', ()=> setLang(quickLang.value));
+
+/* mode toggle (dark/light) */
+let lightMode = false;
+modeBtn.addEventListener('click', ()=>{
+  lightMode = !lightMode;
+  if(lightMode){ document.documentElement.classList.add('light'); modeBtn.textContent = 'Light / Dark'}
+  else { document.documentElement.classList.remove('light'); modeBtn.textContent = 'Dark / Light' }
+});
+
+/* Video load & preview */
+btnLoad.addEventListener('click', ()=> videoInput.click());
+videoInput.addEventListener('change', ()=>{
+  const f = videoInput.files[0];
+  if(!f) return;
+  previewEmpty.style.display = 'none';
+  preview.style.display = 'block';
+  preview.src = URL.createObjectURL(f);
+  selectedFile.textContent = `${f.name} — ${(f.size/1024/1024).toFixed(2)} MB`;
+  statusText.textContent = T[currentLang].status_idle;
+});
+
+/* loader show/hide */
+function showLoader(on){ if(on){ loader.classList.add('show'); } else { loader.classList.remove('show'); } }
+
+/* Analyze -> POST to /detect */
+btnAnalyze.addEventListener('click', async ()=>{
+  const f = videoInput.files[0];
+  if(!f){ alert(T[currentLang].target_none); return; }
+
+  statusText.textContent = T[currentLang].status_processing;
+  resultBox.textContent = T[currentLang].result_wait;
+  resultBox.className = 'result pending';
+  showLoader(true);
+
+  const fd = new FormData();
+  fd.append('video', f);
+
+  try {
+    const res = await fetch(API_PATH, { method:'POST', body: fd });
+    if(!res.ok){
+      const txt = await res.text().catch(()=>`HTTP ${res.status}`);
+      throw new Error(`HTTP ${res.status}: ${txt}`);
+    }
+    const data = await res.json();
+
+    let label = (data.label || data.result || "").toString().toLowerCase();
+    let conf = null;
+    if(Array.isArray(data.confidence)) conf = data.confidence;
+    else if(typeof data.confidence === 'number') conf = data.confidence;
+
+    if(label.includes('real') || label === '1' || label === 'true'){
+      resultBox.textContent = T[currentLang].result_real + (conf ? ` — ${Array.isArray(conf)? '' : (conf*100).toFixed(1)+'%'}` : '');
+      resultBox.className = 'result real';
+      statusText.textContent = "STATUS: Protocol complete. Integrity verified.";
+    } else if(label.includes('fake') || label === '0' || label === 'false'){
+      resultBox.textContent = T[currentLang].result_fake + (conf ? ` — ${Array.isArray(conf)? '' : (conf*100).toFixed(1)+'%'}` : '');
+      resultBox.className = 'result fake';
+      statusText.textContent = "STATUS: Protocol complete. Artifact signature confirmed.";
+    } else if(label.includes('error')){
+      resultBox.textContent = T[currentLang].result_error;
+      resultBox.className = 'result pending';
+      statusText.textContent = `STATUS: Server error — ${data.message || JSON.stringify(data).slice(0,120)}`;
+    } else {
+      resultBox.textContent = T[currentLang].result_error;
+      resultBox.className = 'result pending';
+      statusText.textContent = `STATUS: Unexpected server response — ${JSON.stringify(data).slice(0,120)}`;
+    }
+
+  } catch (err) {
+    console.error("Analyze error:", err);
+    resultBox.textContent = T[currentLang].result_error;
+    resultBox.className = 'result pending';
+    statusText.textContent = `STATUS: Connection failed — ${err.message}`;
+  } finally {
+    showLoader(false);
+  }
+});
+
+/* expose show() for nav */
+window.show = show;
+</script>
+</body>
+</html>
