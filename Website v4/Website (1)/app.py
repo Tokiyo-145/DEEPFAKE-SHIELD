@@ -62,8 +62,6 @@ def preprocess_video(video_path, frames_per_clip=8, resize=(112, 112)):
     frames_np = np.stack(frames).transpose(3,0,1,2) 
     return torch.tensor(frames_np).unsqueeze(0)
 
-# ------------------ ROUTES ------------------
-
 @app.route("/")
 def home():
     # *** CHANGE: Assuming the frontend HTML is named 'index.html' ***
