@@ -1,69 +1,74 @@
-﻿absl-py==2.3.1
-astunparse==1.6.3
-blinker==1.9.0
-certifi==2025.11.12
-charset-normalizer==3.4.4
-click==8.3.1
-colorama==0.4.6
-filelock==3.19.1
+﻿# Unused TensorFlow + its dependencies (remove if not using TF)
+# absl-py==2.3.1
+# astunparse==1.6.3
+# flatbuffers==25.9.23
+# gast==0.7.0
+# google-pasta==0.2.0
+# grpcio==1.76.0
+# h5py==3.15.1
+# keras==3.12.0
+# libclang==18.1.1
+# ml_dtypes==0.5.4
+# opt_einsum==3.4.0
+# tensorboard==2.20.0
+# tensorboard-data-server==0.7.2
+# tensorflow==2.20.0
+# termcolor==3.2.0
+# wrapt==2.0.1
+# namex==0.1.0
+
+# Unused ML Libraries (not needed)
+# scikit-learn==1.7.2
+# scipy==1.16.3
+# sympy==1.14.0
+# networkx==3.5
+# joblib==1.5.2
+
+# General Python libs (many unused)
+# Markdown==3.10
+# markdown-it-py==4.0.0
+# mdurl==0.1.2
+# Pygments==2.19.2
+# rich==14.2.0
+# pandas==2.3.3
+# python-dateutil==2.9.0.post0
+# pytz==2025.2
+# setuptools==70.2.0
+# wheel==0.45.1
+
+# --- REQUIRED LIBRARIES FOR YOUR PROJECT ---
+
 Flask==3.1.2
 flask-cors==6.0.1
-flatbuffers==25.9.23
-fsspec==2025.9.0
-gast==0.7.0
-google-pasta==0.2.0
-grpcio==1.76.0
-h5py==3.15.1
-idna==3.11
+Werkzeug==3.1.4
+click==8.3.1
 itsdangerous==2.2.0
 Jinja2==3.1.6
-joblib==1.5.2
-keras==3.12.0
-libclang==18.1.1
-Markdown==3.10
-markdown-it-py==4.0.0
-MarkupSafe==3.0.3
-mdurl==0.1.2
-ml_dtypes==0.5.4
-mpmath==1.3.0
-namex==0.1.0
-networkx==3.5
-numpy==2.2.6
-opencv-python==4.12.0.88
-opt_einsum==3.4.0
-optree==0.18.0
-packaging==25.0
-pandas==2.3.3
-pillow==11.3.0
-protobuf==6.33.2
-Pygments==2.19.2
-python-dateutil==2.9.0.post0
-pytz==2025.2
-requests==2.32.5
-rich==14.2.0
-scikit-learn==1.7.2
-scipy==1.16.3
-setuptools==70.2.0
-six==1.17.0
-sympy==1.14.0
-tensorboard==2.20.0
-tensorboard-data-server==0.7.2
-tensorflow==2.20.0
-termcolor==3.2.0
-threadpoolctl==3.6.0
 
-# --- FIXED TORCH VERSIONS FOR RENDER ---
 torch==2.7.0
 torchvision==0.22.0
 torchaudio==2.7.0
-# ----------------------------------------
 
+numpy==2.2.6
+opencv-python==4.12.0.88
+pillow==11.3.0
+
+requests==2.32.5
+urllib3==2.6.0
+idna==3.11
+certifi==2025.11.12
+charset-normalizer==3.4.4
+
+colorama==0.4.6
+filelock==3.19.1
+fsspec==2025.9.0
+packaging==25.0
 typing_extensions==4.15.0
 tzdata==2025.2
-urllib3==2.6.0
-Werkzeug==3.1.4
-wheel==0.45.1
-wrapt==2.0.1
+MarkupSafe==3.0.3
+protobuf==6.33.2
+six==1.17.0
+optree==0.18.0
+blinker==1.9.0
+
 gunicorn
-
-
